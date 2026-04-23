@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Pack Digital</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- DOMPurify para seguridad -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <style>
+        body { background-color: #0d1b2a; color: #e8e8e8; font-family: sans-serif; }
+        .card { background-color: #1b2d45; border: 1px solid rgba(255,255,255,0.1); }
+        .table { color: #e8e8e8; }
+        .table td, .table th { border-color: rgba(255,255,255,0.1); vertical-align: middle; }
+        .btn-primary { background-color: #d4a853; border: none; color: #0d1b2a; font-weight: bold; }
+        .btn-primary:hover { background-color: #e8c97a; }
+        .btn-danger { background-color: #dc3545; }
+        .login-overlay {
+            position: fixed; inset: 0; background: #0d1b2a; z-index: 9999;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- Pantalla de Login -->
+    <div id="loginScreen" class="login-overlay">
+        <div class="text-center mb-4">
+            <i class="bi bi-shield-lock" style="font-size: 48px; color: #d4a853;"></i>
+            <h2 class="mt-3">Admin Panel</h2>
+        </div>
+        <div class="card p-4" style="width: 300px;">
+            <input type="password" id="passwordInput" class="form-control mb-3" placeholder="Ingresa la clave secreta">
+            <button onclick="login()" class="btn btn-primary w-100">Ingresar</button>
+            <p id="loginError" class="text-danger mt-2 small text-center hidden">Clave incorrecta</p>
+        </div>
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div id="dashboard" class="hidden container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-speedometer2 me-2"></i>Gestión de Productos</h2>
+            <button onclick="logout()" class="btn btn-outline-light btn-sm">Salir</button>
+        </div>
+
+        <div class="row">
+            <!-- Formulario -->
+            <div class="col-md-4 mb-4">
+                <div class="card p-3">
+                    <h5 class="mb-3">Agregar / Editar Producto</h5>
+                    <form id="productForm" onsubmit="saveProduct(event)">
+                        <input type="hidden" id="prodId"> <!-- ID oculto para edición -->
+                        
+                        <div class="mb-2">
+                            <label class="form-label small">ID Único (ej: prod-1)</label>
+                            <input type="text" id="prodIdInput" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Nombre</label>
+                            <input type="text" id="prodName" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Precio (CLP)</label>
+                            <input type="number" id="prodPrice" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Categoría</label>
+                            <select id="prodCategory" class="form-select form-select-sm">
+                                <option value="digital">Digital</option>
+                                <option value="plantillas">Plantillas</option>
+                                <option value="ebooks">Ebooks</option>
+                                <option value="cursos">Cursos</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Descripción</label>
+                            <textarea id="prodDesc" class="form-control form-control-sm" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm">Guardar Producto</button>
+                            <button type="button" onclick="clearForm()" class="btn btn-secondary btn-sm">Limpiar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de Productos -->
+            <div class="col-md-8">
+                <div class="card p-3">
+                    <h5 class="mb-3">Productos Activos</h5>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Precio</th>
+                                    <th>Stock</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTable">
+                                <tr><td colspan="5" class="text-center">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ADMIN_SECRET = '';
+
+        // --- AUTH ---
+        function login() {
+            const pass = document.getElementById('passwordInput').value;
+            // Nota: En producción esto valida contra el backend, aquí es un filtro inicial
+            fetch('/api/admin/products', { headers: { 'x-admin-secret': pass } })
+            .then(res => {
+                if (res.ok) {
+                    ADMIN_SECRET = pass;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    loadProducts();
+                } else {
+                    document.getElementById('loginError').classList.remove('hidden');
+                }
+            })
+            .catch(() => alert('Error de conexión'));
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        // --- CRUD ---
+        async function loadProducts() {
+            try {
+                const res = await fetch('/api/admin/products', {
+                    headers: { 'x-admin-secret': ADMIN_SECRET }
+                });
+                const products = await res.json();
+                const tbody = document.getElementById('productsTable');
+                
+                if (products.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay productos</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = products.map(p => `
+                    <tr>
+                        <td><small class="text-muted">${p.id}</small></td>
+                        <td>${DOMPurify.sanitize(p.name)}</td>
+                        <td>$${Number(p.price).toLocaleString('es-CL')}</td>
+                        <td>${p.stock ?? 999}</td>
+                        <td>
+                            <button onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="btn btn-sm btn-info"><i class="bi bi-pencil"></i></button>
+                            <button onclick="deleteProduct('${p.id}')" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error(e);
+                alert('Error cargando productos');
+            }
+        }
+
+        async function saveProduct(e) {
+            e.preventDefault();
+            const product = {
+                id: document.getElementById('prodIdInput').value.trim(),
+                name: document.getElementById('prodName').value.trim(),
+                price: document.getElementById('prodPrice').value,
+                category: document.getElementById('prodCategory').value,
+                description: document.getElementById('prodDesc').value.trim()
+            };
+
+            try {
+                const res = await fetch('/api/admin/products', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-admin-secret': ADMIN_SECRET 
+                    },
+                    body: JSON.stringify(product)
+                });
+
+                if (res.ok) {
+                    clearForm();
+                    loadProducts();
+                    alert('✅ Producto guardado exitosamente');
+                } else {
+                    const err = await res.json();
+                    alert('❌ Error: ' + err.error);
+                }
+            } catch (e) {
+                alert('Error de red');
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+            
+            try {
+                const res = await fetch('/api/admin/products', {
+                    method: 'DELETE',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-admin-secret': ADMIN_SECRET 
+                    },
+                    body: JSON.stringify({ id })
+                });
+                
+                if (res.ok) {
+                    loadProducts();
+                } else {
+                    alert('Error al eliminar');
+                }
+            } catch (e) {
+                alert('Error de red');
+            }
+        }
+
+        // --- UI ---
+        function editProduct(p) {
+            document.getElementById('prodId').value = p.id; // Usamos esto para saber que estamos editando
+            document.getElementById('prodIdInput').value = p.id;
+            document.getElementById('prodIdInput').readOnly = true; // No se puede cambiar ID al editar
+            document.getElementById('prodName').value = p.name;
+            document.getElementById('prodPrice').value = p.price;
+            document.getElementById('prodCategory').value = p.category || 'digital';
+            document.getElementById('prodDesc').value = p.description || '';
+            
+            // Scroll arriba
+            window.scrollTo(0, 0);
+        }
+
+        function clearForm() {
+            document.getElementById('productForm').reset();
+            document.getElementById('prodIdInput').readOnly = false;
+            document.getElementById('prodId').value = '';
+        }
+
+        // Permitir Enter en login
+        document.getElementById('passwordInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') login();
+        });
+    </script>
+</body>
+</html>

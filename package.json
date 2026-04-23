@@ -1,0 +1,14 @@
+{
+  "name": "pack-digital-vercel",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "build": "echo build listo"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.4.0",
+    "zod": "^3.22.4"
+  }
+}

@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.flow.cl https://*.turso.io; img-src 'self' data: https:;">
+    
+    <title>Pack Digital · Tu Solución Digital</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- DOMPurify para sanitización -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0d1b2a;
+            --secondary: #1b2d45;
+            --accent: #d4a853;
+            --text: #e8e8e8;
+            --text-muted: #a0aec0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--primary);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .fade-up { opacity: 0; transform: translateY(20px); transition: all 0.6s ease; }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+        
+        /* Product Card */
+        .product-card {
+            background: var(--secondary);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        .product-card:hover { transform: translateY(-5px); border-color: var(--accent); }
+        .product-image {
+            height: 160px;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .product-image i { font-size: 48px; color: var(--accent); opacity: 0.7; }
+        .product-tag {
+            position: absolute;
+            top: 12px; right: 12px;
+            background: var(--accent);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .product-body { padding: 20px; }
+        .product-body h5 { font-weight: 600; margin-bottom: 8px; }
+        .product-body p { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+        .price-amount { font-size: 20px; font-weight: 700; color: var(--accent); }
+        .btn-add-cart {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-add-cart:hover { background: var(--accent); color: var(--primary); border-color: var(--accent); }
+        
+        /* Cart */
+        .cart-modal-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            display: none;
+            justify-content: flex-end;
+        }
+        .cart-modal-overlay.active { display: flex; }
+        .cart-modal {
+            width: 400px; max-width: 100%;
+            background: var(--secondary);
+            border-left: 1px solid rgba(255,255,255,0.1);
+            height: 100%;
+            padding: 24px;
+            overflow-y: auto;
+            transform: translateX(100%);
+            transition: transform 0.3s;
+        }
+        .cart-modal-overlay.active .cart-modal { transform: translateX(0); }
+        .cart-item {
+            display: flex; gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .cart-item-icon {
+            width: 48px; height: 48px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .cart-item-info { flex: 1; }
+        .cart-item-info h6 { font-size: 14px; margin: 0 0 4px; }
+        .cart-item-info p { font-size: 13px; color: var(--accent); margin: 0; }
+        .cart-item-remove {
+            background: none; border: none;
+            color: #ff6b6b; cursor: pointer; font-size: 16px;
+        }
+        .cart-total {
+            display: flex; justify-content: space-between;
+            padding: 20px 0; font-weight: 600; font-size: 18px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-checkout {
+            width: 100%;
+            background: var(--accent);
+            color: var(--primary);
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-checkout:hover { filter: brightness(1.1); }
+        .cart-empty { text-align: center; padding: 40px 0; color: var(--text-muted); }
+        
+        /* Flow Modal */
+        .flow-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .flow-overlay.active { display: flex; }
+        .flow-modal {
+            background: var(--secondary);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        /* WhatsApp Chat */
+        .whatsapp-fab {
+            position: fixed; bottom: 24px; right: 24px; z-index: 1500;
+        }
+        .whatsapp-btn {
+            width: 56px; height: 56px;
+            background: #25D366;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            border: none;
+            color: white;
+            font-size: 28px;
+            box-shadow: 0 4px 16px rgba(37,211,102,0.4);
+            transition: transform 0.3s;
+        }
+        .whatsapp-btn:hover { transform: scale(1.1); }
+        .badge-notif {
+            position: absolute; top: -4px; right: -4px;
+            width: 20px; height: 20px;
+            background: #ff4444;
+            border-radius: 50%;
+            font-size: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700;
+        }
+        .whatsapp-chat {
+            position: fixed; bottom: 92px; right: 24px;
+            width: 340px; max-width: calc(100% - 48px);
+            background: var(--secondary);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            z-index: 1500;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+        .whatsapp-chat.active { display: flex; }
+        .whatsapp-chat-header {
+            background: #075E54;
+            padding: 14px 16px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .whatsapp-chat-header h6 { margin: 0; font-size: 14px; }
+        .whatsapp-chat-header small { color: rgba(255,255,255,0.8); font-size: 11px; }
+        .close-chat {
+            margin-left: auto;
+            background: none; border: none;
+            color: white; font-size: 18px; cursor: pointer;
+        }
+        .whatsapp-chat-body {
+            flex: 1; padding: 16px;
+            overflow-y: auto; max-height: 280px;
+            background: var(--primary);
+        }
+        .chat-message { margin-bottom: 10px; display: flex; flex-direction: column; }
+        .chat-message.bot { align-items: flex-start; }
+        .chat-message.user { align-items: flex-end; }
+        .chat-bubble {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .chat-message.bot .chat-bubble {
+            background: var(--secondary);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-bottom-left-radius: 4px;
+        }
+        .chat-message.user .chat-bubble {
+            background: #075E54;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .chat-option-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--accent);
+            padding: 6px 12px;
+            border-radius: 18px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chat-option-btn:hover { background: var(--accent); color: var(--primary); }
+        .whatsapp-chat-input {
+            padding: 12px;
+            display: flex; gap: 8px;
+            background: var(--primary);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .whatsapp-chat-input input {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+        }
+        .whatsapp-chat-input input:focus { border-color: var(--accent); }
+        .whatsapp-chat-input button {
+            background: #075E54;
+            border: none;
+            color: white;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        /* Toast */
+        .toast-custom {
+            position: fixed; bottom: 24px; left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--secondary);
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            padding: 12px 20px;
+            display: flex; align-items: center; gap: 10px;
+            z-index: 4000;
+            transition: transform 0.3s;
+            font-size: 14px;
+        }
+        .toast-custom.show { transform: translateX(-50%) translateY(0); }
+        .toast-custom i { color: var(--accent); }
+        
+        /* Navbar */
+        .navbar-custom {
+            background: rgba(13,27,42,0.95);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 0;
+        }
+        .navbar-brand-custom {
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none; color: var(--text);
+        }
+        .brand-icon {
+            width: 36px; height: 36px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; color: var(--primary);
+        }
+        .nav-cart-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 8px 14px;
+            color: var(--text);
+            cursor: pointer;
+            position: relative;
+        }
+        .cart-count {
+            position: absolute; top: -6px; right: -6px;
+            background: var(--accent);
+            color: var(--primary);
+            font-size: 10px; font-weight: 700;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        /* Hero */
+        .hero-section {
+            min-height: 80vh;
+            display: flex; align-items: center;
+            padding: 80px 0 40px;
+        }
+        .hero-title {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+        .hero-title .gold { color: var(--accent); }
+        .hero-subtitle {
+            color: var(--text-muted);
+            font-size: 16px;
+            line-height: 1.7;
+            max-width: 500px;
+            margin-bottom: 32px;
+        }
+        .btn-gold {
+            background: var(--accent);
+            color: var(--primary);
+            border: none;
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-gold:hover { filter: brightness(1.1); }
+        
+        /* Footer */
+        .footer {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 40px 0 20px;
+            margin-top: 60px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-custom fixed-top" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand-custom" href="#">
+                <div class="brand-icon">PD</div>
+                <span style="font-weight:600">Pack Digital</span>
+            </a>
+            <button class="nav-cart-btn ms-auto" onclick="toggleCart()">
+                <i class="bi bi-bag"></i>
+                <span class="cart-count" id="cartCount">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="hero-title">Tu Solución <span class="gold">Digital</span> Completa</h1>
+                    <p class="hero-subtitle">Plantillas, ebooks y recursos profesionales para potenciar tu negocio. Descarga inmediata después del pago.</p>
+                    <button class="btn-gold" onclick="document.getElementById('productos').scrollIntoView({behavior:'smooth'})">
+                        Explorar Productos <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products -->
+    <section id="productos" class="py-5">
+        <div class="container">
+            <h2 class="mb-4">Nuestros Productos</h2>
+            <div class="row g-4" id="productsGrid">
+                <!-- Products loaded by JS -->
+                <div class="col-12 text-center text-muted py-5">Cargando productos...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container text-center">
+            <p>© 2026 Pack Digital. Pagos procesados por <strong>Flow</strong>.</p>
+        </div>
+    </footer>
+
+    <!-- Cart Modal -->
+    <div class="cart-modal-overlay" id="cartOverlay" onclick="closeCartOutside(event)">
+        <div class="cart-modal">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 style="margin:0">Tu Carrito</h4>
+                <button onclick="toggleCart()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div id="cartItems"></div>
+            <div id="cartFooter"></div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal (Formulario de datos) -->
+    <div class="flow-overlay" id="checkoutOverlay">
+        <div class="flow-modal">
+            <h4 style="margin-bottom:20px"><i class="bi bi-person-check me-2"></i>Completa tus datos</h4>
+            <form id="checkoutForm" onsubmit="submitCheckout(event)">
+                <div class="mb-3">
+                    <label class="form-label" style="color:var(--text-muted);font-size:13px">📧 Email</label>
+                    <input type="email" id="checkoutEmail" class="form-control" placeholder="tu@email.com" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" style="color:var(--text-muted);font-size:13px">👤 Nombre Completo</label>
+                    <input type="text" id="checkoutName" class="form-control" placeholder="Tu nombre" required>
+                </div>
+                <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:12px;margin-bottom:20px">
+                    <small style="color:var(--accent)"><i class="bi bi-shield-check"></i> Tus datos están seguros con Flow</small>
+                </div>
+                <div style="display:flex;gap:10px">
+                    <button type="button" class="btn-checkout" style="background:#6c757d;flex:1" onclick="closeCheckoutModal()">Cancelar</button>
+                    <button type="submit" class="btn-checkout" style="flex:1"><i class="bi bi-lock"></i> Proceder al Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Flow Payment Modal (Procesando) -->
+    <div class="flow-overlay" id="flowOverlay">
+        <div class="flow-modal">
+            <i class="bi bi-lock" style="font-size:40px;color:var(--accent);margin-bottom:16px"></i>
+            <h4 style="margin-bottom:8px">Procesando Pago</h4>
+            <p id="flowAmount" style="color:var(--text-muted);margin-bottom:24px">Total: $0 CLP</p>
+            <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;margin-bottom:20px">
+                <small style="color:var(--text-muted)">Redirigiendo a Flow para pago seguro...</small>
+            </div>
+            <button class="btn-checkout" style="background:#6c757d" onclick="closeFlowModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- WhatsApp Chat -->
+    <div class="whatsapp-fab">
+        <div class="whatsapp-chat" id="whatsappChat">
+            <div class="whatsapp-chat-header">
+                <div style="width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center">
+                    <i class="bi bi-robot" style="font-size:16px"></i>
+                </div>
+                <div>
+                    <h6>Pack Digital Bot</h6>
+                    <small>En línea</small>
+                </div>
+                <button class="close-chat" onclick="toggleWhatsAppChat()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="whatsapp-chat-body" id="chatBody"></div>
+            <div class="whatsapp-chat-input">
+                <input type="text" id="chatInput" placeholder="Escribe un mensaje..." onkeypress="handleChatKeypress(event)">
+                <button onclick="sendChatMessage()"><i class="bi bi-send"></i></button>
+            </div>
+        </div>
+        <button class="whatsapp-btn" onclick="toggleWhatsAppChat()">
+            <i class="bi bi-whatsapp"></i>
+            <span class="badge-notif" id="chatNotif">1</span>
+        </button>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-custom" id="toast">
+        <i class="bi bi-check-circle-fill"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Tu JavaScript corregido -->
+    <script>
+  // =============================================
+  // ESTADO & CONFIG
+  // =============================================
+  // Cargar carrito desde localStorage si existe
+  let cart = JSON.parse(localStorage.getItem('pack_digital_cart') || '[]');
+  const WHATSAPP_NUMBER = '56912345678'; // ⚠️ Cambia por tu número real
+
+  // Función segura para escapar HTML (previene XSS)
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Helper para obtener elementos con fallback
+  function getEl(id) {
+    const el = document.getElementById(id);
+    if (!el) console.warn(`⚠️ Elemento #${id} no encontrado`);
+    return el;
+  }
+
+  // =============================================
+  // FETCH PRODUCTOS DESDE API
+  // =============================================
+  async function loadProducts() {
+    try {
+      const res = await fetch('/api/products');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      
+      const products = await res.json();
+      const grid = getEl('productsGrid');
+      
+      if (!grid) return;
+      
+      grid.innerHTML = products.map(p => `
+        <div class="col-md-6 col-lg-4 fade-up">
+          <div class="product-card">
+            <div class="product-image">
+              <i class="bi bi-box-seam"></i>
+              <span class="product-tag">Digital</span>
+            </div>
+            <div class="product-body">
+              <h5>${DOMPurify ? DOMPurify.sanitize(p.name) : escapeHtml(p.name)}</h5>
+              <p>${DOMPurify ? DOMPurify.sanitize(p.description) : escapeHtml(p.description)}</p>
+              <div class="product-price">
+                <span class="price-amount">$${Number(p.price).toLocaleString('es-CL')} <small>CLP</small></span>
+                <button class="btn-add-cart" onclick="addToCart('${p.id}', '${escapeHtml(p.name).replace(/'/g, "\\'")}', ${Number(p.price)})">
+                  <i class="bi bi-cart-plus"></i> Agregar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      handleScrollAnimations();
+    } catch (err) {
+      console.error('❌ Error loading products:', err);
+      const grid = getEl('productsGrid');
+      if (grid) {
+        grid.innerHTML = `
+          <div class="col-12 text-center">
+            <p class="text-muted mb-3">⚠️ No se pudieron cargar los productos</p>
+            <button class="btn btn-outline-light btn-sm" onclick="loadProducts()">Reintentar</button>
+          </div>`;
+      }
+    }
+  }
+
+  // =============================================
+  // CARRITO
+  // =============================================
+  function addToCart(id, name, price) {
+    if (cart.find(c => c.id === id)) {
+      showToast('⚠️ Este producto ya está en tu carrito');
+      return;
+    }
+    cart.push({ id, name, price, icon: 'bi-box-seam' });
+    updateCartUI();
+    showToast(`✅ "${name}" agregado al carrito`);
+  }
+
+  function removeFromCart(id) {
+    cart = cart.filter(c => c.id !== id);
+    updateCartUI();
+  }
+
+  function updateCartUI() {
+    // Persistir carrito
+    localStorage.setItem('pack_digital_cart', JSON.stringify(cart));
+    
+    const countEl = getEl('cartCount');
+    const container = getEl('cartItems');
+    const footer = getEl('cartFooter');
+
+    if (countEl) countEl.textContent = cart.length;
+    if (!container || !footer) return;
+
+    if (!cart.length) {
+      container.innerHTML = '<div class="cart-empty"><i class="bi bi-bag" style="font-size:48px;opacity:0.3"></i><p class="mt-3">Tu carrito está vacío</p></div>';
+      footer.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = cart.map(i => `
+      <div class="cart-item">
+        <div class="cart-item-icon"><i class="bi ${i.icon}"></i></div>
+        <div class="cart-item-info">
+          <h6>${DOMPurify ? DOMPurify.sanitize(i.name) : escapeHtml(i.name)}</h6>
+          <p>$${Number(i.price).toLocaleString('es-CL')} CLP</p>
+        </div>
+        <button class="cart-item-remove" onclick="removeFromCart('${i.id}')" title="Eliminar">
+          <i class="bi bi-trash3"></i>
+        </button>
+      </div>
+    `).join('');
+
+    const total = cart.reduce((s, i) => s + Number(i.price), 0);
+    footer.innerHTML = `
+      <div class="cart-total">
+        <span>Total</span>
+        <span>$${total.toLocaleString('es-CL')} CLP</span>
+      </div>
+      <button class="btn-checkout" onclick="openCheckoutModal()">
+        <i class="bi bi-lock"></i> Pagar con Flow
+      </button>
+    `;
+  }
+
+  function toggleCart() {
+    const overlay = getEl('cartOverlay');
+    if (overlay) overlay.classList.toggle('active');
+  }
+
+  // Reemplazar botón de checkout anterior
+  function openFlowPaymentOld() {
+    openCheckoutModal();
+  }
+
+  function closeCartOutside(e) {
+    if (e.target === e.currentTarget) toggleCart();
+  }
+
+  // =============================================
+  // CHECKOUT & FLOW PAYMENT
+  // =============================================
+  function openCheckoutModal() {
+    if (!cart.length) {
+      showToast('⚠️ Tu carrito está vacío');
+      return;
+    }
+    const checkoutOverlay = getEl('checkoutOverlay');
+    if (checkoutOverlay) checkoutOverlay.classList.add('active');
+  }
+
+  function closeCheckoutModal() {
+    const checkoutOverlay = getEl('checkoutOverlay');
+    if (checkoutOverlay) checkoutOverlay.classList.remove('active');
+  }
+
+  async function submitCheckout(event) {
+    event.preventDefault();
+    const email = document.getElementById('checkoutEmail').value.trim();
+    const name = document.getElementById('checkoutName').value.trim();
+    
+    if (!email || !name) {
+      showToast('⚠️ Por favor completa todos los campos');
+      return;
+    }
+    
+    closeCheckoutModal();
+    await openFlowPayment(email, name);
+  }
+
+  async function openFlowPayment(email, name) {
+    const flowOverlay = getEl('flowOverlay');
+    if (flowOverlay) flowOverlay.classList.add('active');
+
+    try {
+      const res = await fetch('/api/flow/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cart.map(c => ({ id: c.id, quantity: 1 })),
+          customerEmail: email,
+          customerName: name
+        })
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Error en el servidor');
+      }
+
+      const amountEl = getEl('flowAmount');
+      if (amountEl) {
+        amountEl.textContent = `Total: $${Number(data.total).toLocaleString('es-CL')} CLP`;
+      }
+      
+      setTimeout(() => {
+        if (flowOverlay) flowOverlay.classList.remove('active');
+        cart = [];
+        updateCartUI();
+        showToast('✅ ¡Pago procesado! Revisa tu email para descargar.');
+      }, 1500);
+
+    } catch (err) {
+      console.error('❌ Payment error:', err);
+      const flowOverlay = getEl('flowOverlay');
+      if (flowOverlay) flowOverlay.classList.remove('active');
+      showToast('❌ Error: ' + (err.message || 'No se pudo procesar el pago'));
+    }
+  }
+
+  function closeFlowModal() {
+    const flowOverlay = getEl('flowOverlay');
+    if (flowOverlay) flowOverlay.classList.remove('active');
+  }
+
+  // =============================================
+  // WHATSAPP CHATBOT
+  // =============================================
+  const chatbotResponses = {
+    greetings: ["¡Hola! 👋 Soy el asistente de Pack Digital. ¿En qué puedo ayudarte?"],
+    options: {
+      "📦 Productos": "Tenemos plantillas, ebooks y cursos digitales. ¿Te interesa alguno?",
+      "💰 Precios": "Desde $4.990 CLP. Planes: Básico, Pro y Enterprise.",
+      "🔧 Soporte": "Soporte 24/7 por WhatsApp. Describe tu problema y te ayudo.",
+      "📋 Pagos": "Aceptamos tarjetas, transferencias y Servipag vía Flow.",
+      "↩️ Garantía": "30 días de devolución sin preguntas.",
+      "👋 Humano": `Te redirijo: <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" style="color:#25D366;text-decoration:none;font-weight:600">Abrir WhatsApp →</a>`
+    }
+  };
+
+  let chatInitialized = false;
+
+  function toggleWhatsAppChat() {
+    const chat = getEl('whatsappChat');
+    if (!chat) return;
+    chat.classList.toggle('active');
+    if (!chatInitialized && chat.classList.contains('active')) {
+      chatInitialized = true;
+      setTimeout(() => {
+        addBotMessage(chatbotResponses.greetings[0]);
+        setTimeout(() => showChatOptions(), 500);
+      }, 600);
+      const notif = getEl('chatNotif');
+      if (notif) notif.style.display = 'none';
+    }
+  }
+
+  function openWhatsAppChat() {
+    const chat = getEl('whatsappChat');
+    if (!chat) return;
+    if (!chat.classList.contains('active')) chat.classList.add('active');
+    if (!chatInitialized) {
+      chatInitialized = true;
+      setTimeout(() => {
+        addBotMessage(chatbotResponses.greetings[0]);
+        setTimeout(() => showChatOptions(), 500);
+      }, 600);
+      const notif = getEl('chatNotif');
+      if (notif) notif.style.display = 'none';
+    }
+  }
+
+  function addBotMessage(text) {
+    const body = getEl('chatBody');
+    if (!body) return;
+    const div = document.createElement('div');
+    div.className = 'chat-message bot';
+    div.innerHTML = `<div class="chat-bubble">${DOMPurify ? DOMPurify.sanitize(text, {ALLOW_TAGS: ['a'], ALLOW_ATTR: ['href','target','style']}) : text}</div>`;
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function addUserMessage(text) {
+    const body = getEl('chatBody');
+    if (!body) return;
+    const div = document.createElement('div');
+    div.className = 'chat-message user';
+    div.innerHTML = `<div class="chat-bubble">${escapeHtml(text)}</div>`;
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function showChatOptions() {
+    const body = getEl('chatBody');
+    if (!body) return;
+    const div = document.createElement('div');
+    div.className = 'chat-message bot';
+    const optionsHtml = Object.keys(chatbotResponses.options).map(o => {
+      const safeOption = o.replace(/'/g, "\\'");
+      return `<button class="chat-option-btn" onclick="handleChatOption('${safeOption}')">${escapeHtml(o)}</button>`;
+    }).join('');
+    div.innerHTML = `<div class="chat-bubble" style="background:transparent;border:none;padding:0"><div class="chat-options">${optionsHtml}</div></div>`;
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function handleChatOption(option) {
+    addUserMessage(option);
+    setTimeout(() => {
+      const response = chatbotResponses.options[option];
+      if (response) addBotMessage(response);
+      if (option !== "👋 Humano") setTimeout(() => showChatOptions(), 300);
+    }, 600);
+  }
+
+  function sendChatMessage() {
+    const input = getEl('chatInput');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    addUserMessage(text);
+    input.value = '';
+    setTimeout(() => {
+      const lower = text.toLowerCase();
+      let res = "Entiendo. ¿Podrías contactarnos directamente? ";
+      if (lower.includes('hola') || lower.includes('hey') || lower.includes('buenas')) res = chatbotResponses.greetings[0];
+      else if (lower.includes('precio') || lower.includes('cuanto') || lower.includes('vale')) res = "Desde $4.990 CLP. Planes: Básico ($4.990), Pro ($14.990) y Enterprise ($29.990). ¿Te interesa alguno?";
+      else if (lower.includes('pago') || lower.includes('pagar') || lower.includes('flow')) res = "Aceptamos tarjetas (Visa/Mastercard), transferencias y pago en Servipag/Multicaja vía Flow. 🔒 Seguro y rápido.";
+      else if (lower.includes('humano') || lower.includes('agente') || lower.includes('persona')) res = `Te conecto con un agente: <a href="https://wa.me/${WHATSAPP_NUMBER}?text=Hola,%20necesito%20ayuda" target="_blank" style="color:#25D366;text-decoration:none;font-weight:600">Abrir WhatsApp →</a>`;
+      else res += `<a href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}" target="_blank" style="color:#25D366;text-decoration:none;font-weight:600">Escribir por WhatsApp →</a>`;
+      addBotMessage(res);
+      if (!lower.includes('humano') && !lower.includes('agente') && !lower.includes('persona')) setTimeout(() => showChatOptions(), 300);
+    }, 800);
+  }
+
+  function handleChatKeypress(e) { if (e.key === 'Enter') sendChatMessage(); }
+
+  // =============================================
+  // UTILS
+  // =============================================
+  function showToast(msg) {
+    const toast = getEl('toast');
+    const msgEl = getEl('toastMessage');
+    if (!toast || !msgEl) return;
+    msgEl.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  function handleScrollAnimations() {
+    document.querySelectorAll('.fade-up').forEach(el => {
+      const observer = new IntersectionObserver(entries => {
+        if (entries[0]?.isIntersecting) {
+          el.classList.add('visible');
+          observer.unobserve(el);
+        }
+      }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+      observer.observe(el);
+    });
+  }
+
+  window.addEventListener('scroll', () => {
+    const nav = getEl('mainNav');
+    if (nav) nav.classList.toggle('scrolled', window.scrollY > 50);
+  }, { passive: true });
+
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href');
+      if (targetId === '#') return;
+      const target = document.querySelector(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const navMenu = getEl('navMenu');
+        if (navMenu && window.innerWidth < 992) {
+          const bsCollapse = bootstrap?.Collapse?.getInstance(navMenu);
+          if (bsCollapse) bsCollapse.hide();
+        }
+      }
+    });
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    handleScrollAnimations();
+    loadProducts();
+    updateCartUI(); // Inicializar UI del carrito con datos de localStorage
+    if (typeof bootstrap === 'undefined') console.warn('⚠️ Bootstrap no está cargado');
+    console.log('✅ Pack Digital - Frontend inicializado');
+  });
+    </script>
+</body>
+</html>
