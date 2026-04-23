@@ -1,9 +1,9 @@
 {
-  "name": "pack-digital-vercel",
+  "name": "pack-digital",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "dev",
     "deploy": "vercel --prod",
     "build": "echo build listo"
   },
